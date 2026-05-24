@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -28,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -84,6 +86,25 @@ fun PlaylistScreen(
                     titleContentColor = TextPrimary
                 )
             )
+        },
+        floatingActionButton = {
+            if (uiState is PlaylistUiState.Success) {
+                val state = uiState as PlaylistUiState.Success
+                if (state.queue.isNotEmpty()) {
+                    FloatingActionButton(
+                        onClick = { onPlayQueue(state.queue, 0) },
+                        containerColor = AccentPrimary,
+                        contentColor = Color.Black,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play Playlist",
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+            }
         },
         containerColor = BackgroundDark,
         modifier = modifier.fillMaxSize()
