@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DrivePlay</string>
+
+    <!-- Error states -->
+    <string name="error_file_not_found">This file no longer exists on Drive.</string>
+    <string name="error_access_denied">You don\'t have permission to access this file.</string>
+    <string name="error_unsupported_format">This video format is not supported.</string>
+    <string name="error_network_lost">Connection lost. Retrying…</string>
+    <string name="error_token_expired">Session expired. Signing you back in…</string>
+    <string name="error_shared_drive_403">This file is in a Shared Drive you can\'t access.</string>
+
+    <!-- Player UI -->
+    <string name="resume_prompt">Resume from %1$s?</string>
+    <string name="sleep_timer_badge">%1$dm left</string>
+    <string name="speed_badge">%1$.2f×</string>
+    <string name="next_up_countdown">Next: %1$s in %2$ds</string>
+    <string name="screen_locked">Screen locked — tap to unlock.</string>
+    <string name="cast_proxy_active">Casting via local proxy — Cast device must be on the same network.</string>
+
+    <!-- Gesture feedback overlays -->
+    <string name="gesture_brightness">Brightness %1$d%%</string>
+    <string name="gesture_volume">Volume %1$d%%</string>
+
+    <!-- Quality badge -->
+    <string name="quality_hd">HD</string>
+    <string name="quality_sd">SD</string>
+    <string name="quality_buffering">Buffering…</string>
+</resources>

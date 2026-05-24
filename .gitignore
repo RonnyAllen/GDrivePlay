@@ -1,0 +1,34 @@
+# Built artifacts
+**/build/
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Android Studio & IntelliJ IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.gradle/
+.kotlin/
+.navigation/
+captures/
+.cxx/
+local.properties
+
+# Gradle caches & wrappers
+.gradle/
+build/
+
+# Keystores & credentials (keep debug key if desired, but best to ignore release keys)
+*.jks
+*.keystore
+!app/debug.keystore
+
+# Log files
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
