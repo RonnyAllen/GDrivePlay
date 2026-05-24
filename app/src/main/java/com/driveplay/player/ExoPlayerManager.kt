@@ -82,6 +82,8 @@ class ExoPlayerManager @Inject constructor(
         activePlayer.prepare()
     }
 
+    private var loudnessEnhancer: android.media.audiofx.LoudnessEnhancer? = null
+
     fun setPlaybackSpeed(speed: Float, pitchCorrection: Boolean) {
         player?.playbackParameters = PlaybackParameters(speed, if (pitchCorrection) 1.0f else speed)
     }
@@ -94,7 +96,32 @@ class ExoPlayerManager @Inject constructor(
         selector.parameters = parameters
     }
 
+    fun setVolumeBoost(boostPercent: Int) {
+        val activePlayer = player ?: return
+        val audioSessionId = activePlayer.audioSessionId
+        if (audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+            if (loudnessEnhancer == null || loudnessEnhancer?.id != audioSessionId) {
+                loudnessEnhancer?.release()
+                try {
+                    loudnessEnhancer = android.media.audiofx.LoudnessEnhancer(audioSessionId).apply {
+                        enabled = true
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            val gainmB = (boostPercent * 20).coerceIn(0, 2000) // 0 to 20 dB gain (2000mB)
+            try {
+                loudnessEnhancer?.setTargetGain(gainmB)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun releasePlayer() {
+        loudnessEnhancer?.release()
+        loudnessEnhancer = null
         player?.release()
         player = null
         trackSelector = null

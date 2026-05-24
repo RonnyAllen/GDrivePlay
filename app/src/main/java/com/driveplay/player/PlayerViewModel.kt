@@ -210,6 +210,10 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun setVolumeBoost(boostPercent: Int) {
+        exoPlayerManager.setVolumeBoost(boostPercent)
+    }
+
     fun cycleAspectRatio() {
         _aspectRatioMode.value = (_aspectRatioMode.value + 1) % 5
     }

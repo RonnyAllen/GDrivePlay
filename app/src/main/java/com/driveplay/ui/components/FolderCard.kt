@@ -1,7 +1,8 @@
 package com.driveplay.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,20 +30,47 @@ import com.driveplay.ui.theme.SurfaceDark
 import com.driveplay.ui.theme.TextPrimary
 import com.driveplay.ui.theme.TextSecondary
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FolderCard(
     folder: PlaylistItem,
     onTap: () -> Unit,
+    onLongTap: () -> Unit,
+    isMultiSelectMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(SurfaceDark)
-            .clickable(onClick = onTap)
+            .combinedClickable(
+                onClick = {
+                    if (isMultiSelectMode) {
+                        onToggleSelection()
+                    } else {
+                        onTap()
+                    }
+                },
+                onLongClick = onLongTap
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (isMultiSelectMode) {
+            androidx.compose.material3.Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onToggleSelection() },
+                colors = androidx.compose.material3.CheckboxDefaults.colors(
+                    checkedColor = AccentPrimary,
+                    uncheckedColor = TextSecondary,
+                    checkmarkColor = Color.Black
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
         // Directory Icon
         Icon(
             imageVector = Icons.Default.Folder,

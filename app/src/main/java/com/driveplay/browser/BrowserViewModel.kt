@@ -7,6 +7,8 @@ import com.driveplay.domain.usecase.GetFolderContentsUseCase
 import com.driveplay.domain.usecase.DriveIdType
 import com.driveplay.domain.usecase.DriveLinkResult
 import com.driveplay.domain.usecase.LoadFolderByLinkUseCase
+import com.driveplay.data.db.PlaylistDao
+import com.driveplay.data.db.QueueItemEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +38,8 @@ enum class SortDirection { ASC, DESC }
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val getFolderContentsUseCase: GetFolderContentsUseCase,
-    private val loadFolderByLinkUseCase: LoadFolderByLinkUseCase
+    private val loadFolderByLinkUseCase: LoadFolderByLinkUseCase,
+    private val playlistDao: PlaylistDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BrowserUiState>(BrowserUiState.Loading)
@@ -50,6 +53,12 @@ class BrowserViewModel @Inject constructor(
 
     private val _sortDirection = MutableStateFlow(SortDirection.ASC)
     val sortDirection: StateFlow<SortDirection> = _sortDirection.asStateFlow()
+
+    private val _selectedItems = MutableStateFlow<Set<PlaylistItem>>(emptySet())
+    val selectedItems: StateFlow<Set<PlaylistItem>> = _selectedItems.asStateFlow()
+
+    private val _isMultiSelectMode = MutableStateFlow(false)
+    val isMultiSelectMode: StateFlow<Boolean> = _isMultiSelectMode.asStateFlow()
 
     // Breadcrumbs list
     private val breadcrumbs = mutableListOf(BreadcrumbItem("root", "My Drive"))
@@ -202,6 +211,124 @@ class BrowserViewModel @Inject constructor(
                     canRetry = false
                 )
             }
+        }
+    }
+
+    // Playlist Add & Multiselect Actions
+    fun addFolderToPlaylist(folder: PlaylistItem) {
+        viewModelScope.launch {
+            val result = getFolderContentsUseCase(folder.fileId)
+            if (result is GetFolderContentsUseCase.FolderResult.Success) {
+                val videos = result.videos
+                if (videos.isNotEmpty()) {
+                    val activeQueue = playlistDao.getActiveQueue()
+                    var nextOrder = activeQueue.size
+                    val queueItems = videos.map { item ->
+                        QueueItemEntity(
+                            fileId = item.fileId,
+                            name = item.name,
+                            durationMs = item.durationMs,
+                            size = item.size,
+                            thumbnailLink = item.thumbnailLink,
+                            mimeType = item.mimeType ?: "video/mp4",
+                            parentFolderId = folder.fileId,
+                            displayOrder = nextOrder++
+                        )
+                    }
+                    playlistDao.saveQueue(queueItems)
+                }
+            }
+        }
+    }
+
+    fun addFileToPlaylist(video: PlaylistItem) {
+        viewModelScope.launch {
+            val activeQueue = playlistDao.getActiveQueue()
+            val order = activeQueue.size
+            val newItem = QueueItemEntity(
+                fileId = video.fileId,
+                name = video.name,
+                durationMs = video.durationMs,
+                size = video.size,
+                thumbnailLink = video.thumbnailLink,
+                mimeType = video.mimeType ?: "video/mp4",
+                parentFolderId = video.parentFolderId,
+                displayOrder = order
+            )
+            playlistDao.saveQueue(listOf(newItem))
+        }
+    }
+
+    fun toggleMultiSelectMode() {
+        val enabled = !_isMultiSelectMode.value
+        _isMultiSelectMode.value = enabled
+        if (!enabled) {
+            _selectedItems.value = emptySet()
+        }
+    }
+
+    fun toggleItemSelection(item: PlaylistItem) {
+        val current = _selectedItems.value.toMutableSet()
+        if (current.contains(item)) {
+            current.remove(item)
+        } else {
+            current.add(item)
+        }
+        _selectedItems.value = current
+    }
+
+    fun addSelectedToPlaylist() {
+        val selected = _selectedItems.value
+        if (selected.isEmpty()) return
+
+        viewModelScope.launch {
+            val activeQueue = playlistDao.getActiveQueue()
+            var nextOrder = activeQueue.size
+
+            val queueItems = mutableListOf<QueueItemEntity>()
+            for (item in selected) {
+                if (item.mimeType == "application/vnd.google-apps.folder") {
+                    // Fetch immediate videos in folder
+                    val result = getFolderContentsUseCase(item.fileId)
+                    if (result is GetFolderContentsUseCase.FolderResult.Success) {
+                        result.videos.forEach { video ->
+                            queueItems.add(
+                                QueueItemEntity(
+                                    fileId = video.fileId,
+                                    name = video.name,
+                                    durationMs = video.durationMs,
+                                    size = video.size,
+                                    thumbnailLink = video.thumbnailLink,
+                                    mimeType = video.mimeType ?: "video/mp4",
+                                    parentFolderId = item.fileId,
+                                    displayOrder = nextOrder++
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    queueItems.add(
+                        QueueItemEntity(
+                            fileId = item.fileId,
+                            name = item.name,
+                            durationMs = item.durationMs,
+                            size = item.size,
+                            thumbnailLink = item.thumbnailLink,
+                            mimeType = item.mimeType ?: "video/mp4",
+                            parentFolderId = item.parentFolderId,
+                            displayOrder = nextOrder++
+                        )
+                    )
+                }
+            }
+
+            if (queueItems.isNotEmpty()) {
+                playlistDao.saveQueue(queueItems)
+            }
+
+            // Reset
+            _selectedItems.value = emptySet()
+            _isMultiSelectMode.value = false
         }
     }
 }

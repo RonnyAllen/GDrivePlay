@@ -1,6 +1,8 @@
 package com.driveplay.browser
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +16,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistPlay
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -24,8 +34,10 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,8 +51,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.driveplay.domain.model.PlaylistItem
@@ -60,7 +74,7 @@ import com.driveplay.ui.theme.TextSecondary
 @Composable
 fun BrowserScreen(
     viewModel: BrowserViewModel,
-    onPlayVideo: (String, String, String) -> Unit,
+    onPlayVideo: (List<PlaylistItem>, Int) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -68,10 +82,15 @@ fun BrowserScreen(
     val sortField by viewModel.sortField.collectAsState()
     val sortDir by viewModel.sortDirection.collectAsState()
     val currentFolderId by viewModel.currentFolderId.collectAsState()
+    val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsState()
+    val selectedItems by viewModel.selectedItems.collectAsState()
 
     var showDetailsSheet by remember { mutableStateOf(false) }
     var selectedVideoForDetails by remember { mutableStateOf<PlaylistItem?>(null) }
     val detailsSheetState = rememberModalBottomSheetState()
+
+    var showContextSheet by remember { mutableStateOf(false) }
+    var contextItem by remember { mutableStateOf<PlaylistItem?>(null) }
 
     val listState = rememberLazyListState()
 
@@ -187,8 +206,19 @@ fun BrowserScreen(
                             FolderCard(
                                 folder = folder,
                                 onTap = {
-                                    viewModel.loadFolder(folder.fileId, folder.name)
-                                }
+                                    if (isMultiSelectMode) {
+                                        viewModel.toggleItemSelection(folder)
+                                    } else {
+                                        viewModel.loadFolder(folder.fileId, folder.name)
+                                    }
+                                },
+                                onLongTap = {
+                                    contextItem = folder
+                                    showContextSheet = true
+                                },
+                                isMultiSelectMode = isMultiSelectMode,
+                                isSelected = selectedItems.contains(folder),
+                                onToggleSelection = { viewModel.toggleItemSelection(folder) }
                             )
                         }
 
@@ -197,12 +227,20 @@ fun BrowserScreen(
                             VideoCard(
                                 video = video,
                                 onTap = {
-                                    onPlayVideo(video.fileId, video.name, currentFolderId)
+                                    if (isMultiSelectMode) {
+                                        viewModel.toggleItemSelection(video)
+                                    } else {
+                                        val index = state.videos.indexOf(video)
+                                        onPlayVideo(state.videos, index)
+                                    }
                                 },
                                 onLongTap = {
-                                    selectedVideoForDetails = video
-                                    showDetailsSheet = true
-                                }
+                                    contextItem = video
+                                    showContextSheet = true
+                                },
+                                isMultiSelectMode = isMultiSelectMode,
+                                isSelected = selectedItems.contains(video),
+                                onToggleSelection = { viewModel.toggleItemSelection(video) }
                             )
                         }
                     }
@@ -239,6 +277,190 @@ fun BrowserScreen(
                     // Trigger download placeholder logic
                 }
             )
+        }
+
+        // New custom Folder/Video Context Menu Bottom Sheet
+        if (showContextSheet && contextItem != null) {
+            val item = contextItem!!
+            val isFolder = item.mimeType == "application/vnd.google-apps.folder"
+            
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showContextSheet = false
+                    contextItem = null
+                },
+                containerColor = SurfaceDark,
+                sheetState = rememberModalBottomSheetState()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = if (isFolder) Icons.Default.Folder else Icons.Default.PlayArrow,
+                            contentDescription = "Item Type",
+                            tint = AccentPrimary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = if (isFolder) "Google Drive Folder" else "Google Drive Video",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Option 1: Add to Playlist
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showContextSheet = false
+                                contextItem = null
+                                if (isFolder) {
+                                    viewModel.addFolderToPlaylist(item)
+                                } else {
+                                    viewModel.addFileToPlaylist(item)
+                                }
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlaylistPlay,
+                            contentDescription = "Add Playlist",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = if (isFolder) "Add Folder to Playlist" else "Add Video to Playlist",
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    // Option 2: Select Multiple
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showContextSheet = false
+                                contextItem = null
+                                viewModel.toggleMultiSelectMode()
+                                viewModel.toggleItemSelection(item)
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Select Multiple",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Select Multiple Items",
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    // Option 3: View Details
+                    if (!isFolder) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showContextSheet = false
+                                    selectedVideoForDetails = item
+                                    showDetailsSheet = true
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "View Details",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "View File Details",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
+
+        // Floating contextual Action Bar
+        if (isMultiSelectMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 24.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(SurfaceDark.copy(alpha = 0.95f))
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "${selectedItems.size} Selected",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+
+                    Button(
+                        onClick = { viewModel.addSelectedToPlaylist() },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlaylistPlay,
+                            contentDescription = "Add Selected",
+                            tint = Color.Black,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Add to Playlist", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+
+                    TextButton(
+                        onClick = { viewModel.toggleMultiSelectMode() }
+                    ) {
+                        Text(text = "Cancel", color = Color.Red, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
         }
     }
 }

@@ -34,6 +34,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -91,6 +92,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var userPreferences: UserPreferencesDataStore
+
+    private var isPlayerActive = false
 
     private var loginSuccessCallback: (() -> Unit)? = null
 
@@ -243,19 +246,20 @@ class MainActivity : ComponentActivity() {
                                         val browserVm: BrowserViewModel = hiltViewModel()
                                         BrowserScreen(
                                             viewModel = browserVm,
-                                            onPlayVideo = { fid, fname, parentFolder ->
-                                                val queueItem = QueueItemEntity(
-                                                    fileId = fid,
-                                                    name = fname,
-                                                    durationMs = 0L,
-                                                    size = 0L,
-                                                    thumbnailLink = null,
-                                                    mimeType = "video/mp4",
-                                                    parentFolderId = parentFolder,
-                                                    displayOrder = 0
-                                                )
-                                                activePlayerQueue = listOf(queueItem)
-                                                activeQueueIndex = 0
+                                            onPlayVideo = { videos, startIndex ->
+                                                activePlayerQueue = videos.mapIndexed { idx, item ->
+                                                    QueueItemEntity(
+                                                        fileId = item.fileId,
+                                                        name = item.name,
+                                                        durationMs = item.durationMs,
+                                                        size = item.size,
+                                                        thumbnailLink = item.thumbnailLink,
+                                                        mimeType = item.mimeType ?: "video/mp4",
+                                                        parentFolderId = item.parentFolderId,
+                                                        displayOrder = idx
+                                                    )
+                                                }
+                                                activeQueueIndex = startIndex
                                                 currentScreen = "player"
                                             },
                                             onBack = { selectedTab = 0 }
@@ -287,8 +291,18 @@ class MainActivity : ComponentActivity() {
                     }
                     "player" -> {
                         val playerVm: PlayerViewModel = hiltViewModel()
-                        // Prepare playlist items
-                        playerVm.loadPlaylist(activePlayerQueue, activeQueueIndex)
+                        
+                        DisposableEffect(Unit) {
+                            isPlayerActive = true
+                            onDispose {
+                                isPlayerActive = false
+                            }
+                        }
+
+                        // Prepare playlist items once on entry
+                        LaunchedEffect(activePlayerQueue, activeQueueIndex) {
+                            playerVm.loadPlaylist(activePlayerQueue, activeQueueIndex)
+                        }
 
                         PlayerScreen(
                             viewModel = playerVm,
@@ -299,6 +313,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (isPlayerActive) {
+            enterPictureInPictureMode()
         }
     }
 

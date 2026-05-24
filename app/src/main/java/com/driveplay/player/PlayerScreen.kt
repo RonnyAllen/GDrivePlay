@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.Forward10
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
@@ -157,10 +158,24 @@ fun PlayerScreen(
     var activeGesture by remember { mutableStateOf("none") }
     var brightnessPercent by remember { mutableStateOf(50) }
     var volumePercent by remember { mutableStateOf(50) }
+    var currentVolumeBoost by remember { mutableIntStateOf(0) }
     var seekTargetMs by remember { mutableLongStateOf(0L) }
     var videoDurationMs by remember { mutableLongStateOf(0L) }
     var videoPlayheadMs by remember { mutableLongStateOf(0L) }
     var videoBufferedMs by remember { mutableLongStateOf(0L) }
+
+    var isInPipMode by remember { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        val compActivity = context as? androidx.activity.ComponentActivity
+        val listener = androidx.core.util.Consumer<androidx.core.app.PictureInPictureModeChangedInfo> { info ->
+            isInPipMode = info.isInPictureInPictureMode
+        }
+        compActivity?.addOnPictureInPictureModeChangedListener(listener)
+        onDispose {
+            compActivity?.removeOnPictureInPictureModeChangedListener(listener)
+        }
+    }
 
     // Dialog Sheets
     var showSpeedSheet by remember { mutableStateOf(false) }
@@ -265,7 +280,8 @@ fun PlayerScreen(
                             val event = awaitPointerEvent()
                             val change = event.changes.first()
 
-                            if (change.pressed) {
+                            // Capture initial touch down event correctly
+                            if (!change.previousPressed && change.pressed) {
                                 val position = change.position
                                 gestureCoordinator.onDown(position.x, position.y, screenWidth)
                                 totalDx = 0f
@@ -284,7 +300,8 @@ fun PlayerScreen(
                                     screenHeight = screenHeight,
                                     density = density,
                                     durationMs = videoDurationMs,
-                                    currentPlayheadMs = videoPlayheadMs
+                                    currentPlayheadMs = videoPlayheadMs,
+                                    volumeBoost = currentVolumeBoost
                                 )
 
                                 when (response) {
@@ -295,10 +312,19 @@ fun PlayerScreen(
                                     is GestureResponse.VolumeChanged -> {
                                         activeGesture = "volume"
                                         volumePercent = response.percent
+                                        if (response.percent > 100) {
+                                            currentVolumeBoost = response.percent - 100
+                                            viewModel.setVolumeBoost(currentVolumeBoost)
+                                        } else {
+                                            currentVolumeBoost = 0
+                                            viewModel.setVolumeBoost(0)
+                                        }
                                     }
                                     is GestureResponse.SeekScrubbing -> {
                                         activeGesture = "seek"
                                         seekTargetMs = response.targetMs
+                                        // SEEK LIVE! Smooth real-time playhead updates
+                                        exoPlayer.seekTo(seekTargetMs)
                                         // Load thumbnail preview frame
                                         val ready = uiState as? PlayerUiState.Ready
                                         if (ready != null) {
@@ -343,18 +369,20 @@ fun PlayerScreen(
 
                     // Swipe feedback overlays
                     val readyState = uiState as PlayerUiState.Ready
-                    GestureOverlay(
-                        brightnessPercent = brightnessPercent,
-                        volumePercent = volumePercent,
-                        seekTimeMs = seekTargetMs,
-                        totalDurationMs = videoDurationMs,
-                        previewThumbnail = seekThumbnail,
-                        activeGesture = activeGesture
-                    )
+                    if (!isInPipMode) {
+                        GestureOverlay(
+                            brightnessPercent = brightnessPercent,
+                            volumePercent = volumePercent,
+                            seekTimeMs = seekTargetMs,
+                            totalDurationMs = videoDurationMs,
+                            previewThumbnail = seekThumbnail,
+                            activeGesture = activeGesture
+                        )
+                    }
 
                     // Immersive Controls Layout
                     AnimatedVisibility(
-                        visible = controlsVisible,
+                        visible = controlsVisible && !isInPipMode,
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
@@ -458,6 +486,17 @@ fun PlayerScreen(
                                                 imageVector = Icons.Default.Snooze,
                                                 contentDescription = "Sleep Timer",
                                                 tint = if (sleepTimerState.active) AccentPrimary else Color.White
+                                            )
+                                        }
+
+                                        // Picture in Picture trigger
+                                        IconButton(onClick = {
+                                            activity.enterPictureInPictureMode()
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.AspectRatio,
+                                                contentDescription = "Picture in Picture",
+                                                tint = Color.White
                                             )
                                         }
 

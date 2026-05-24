@@ -51,7 +51,8 @@ class GestureCoordinator(
         screenHeight: Int,
         density: Float,
         durationMs: Long,
-        currentPlayheadMs: Long
+        currentPlayheadMs: Long,
+        volumeBoost: Int
     ): GestureResponse {
         val distance = hypot(dx, dy)
         val thresholdPx = 8f * density // 8dp threshold
@@ -61,8 +62,14 @@ class GestureCoordinator(
 
             // Perform lock-in checking to prevent diagonal conflicts
             lockedGesture = when {
-                abs(dy) > abs(dx) && currentZone == GestureZone.LEFT_MARGIN -> LockedGesture.BRIGHTNESS
-                abs(dy) > abs(dx) && currentZone == GestureZone.RIGHT_MARGIN -> LockedGesture.VOLUME
+                abs(dy) > abs(dx) && currentZone == GestureZone.LEFT_MARGIN -> {
+                    brightnessHandler.onStart()
+                    LockedGesture.BRIGHTNESS
+                }
+                abs(dy) > abs(dx) && currentZone == GestureZone.RIGHT_MARGIN -> {
+                    volumeHandler.onStart(volumeBoost)
+                    LockedGesture.VOLUME
+                }
                 abs(dx) > abs(dy) && currentZone == GestureZone.CENTER -> {
                     seekHandler.onStart(currentPlayheadMs)
                     LockedGesture.SEEK

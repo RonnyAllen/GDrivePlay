@@ -47,6 +47,9 @@ fun VideoCard(
     video: PlaylistItem,
     onTap: () -> Unit,
     onLongTap: () -> Unit,
+    isMultiSelectMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -54,12 +57,30 @@ fun VideoCard(
             .fillMaxWidth()
             .background(SurfaceDark)
             .combinedClickable(
-                onClick = onTap,
+                onClick = {
+                    if (isMultiSelectMode) {
+                        onToggleSelection()
+                    } else {
+                        onTap()
+                    }
+                },
                 onLongClick = onLongTap
             )
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (isMultiSelectMode) {
+            androidx.compose.material3.Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onToggleSelection() },
+                colors = androidx.compose.material3.CheckboxDefaults.colors(
+                    checkedColor = AccentPrimary,
+                    uncheckedColor = TextSecondary,
+                    checkmarkColor = Color.Black
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
         // Thumbnail Box
         Box(
             modifier = Modifier

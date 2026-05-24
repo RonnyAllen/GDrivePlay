@@ -27,3 +27,6 @@
 
 # NanoHTTPD (Cast proxy server)
 -keep class fi.iki.elonen.** { *; }
+
+# Google API client Apache HTTP transport warnings
+-dontwarn org.apache.http.**
