@@ -19,6 +19,7 @@ GDrivePlay is a premium, feature-rich Android video player designed to let you s
   - Long-press any file or folder to add it to your playlist queue.
   - Enter **Multi-Select Mode** to choose multiple videos and folders, and queue them all at once using the glassmorphic floating action bar.
 - **📺 Chromecast & background Sync**: Play audio in the background or cast directly to your Smart TV over LAN with automatic token proxy security.
+- **🎨 Custom Color Scheme Themes**: Personalize the look and feel of the app by choosing your own custom background color and primary accent color using the dual color pickers in Settings. The entire app UI updates reactively in real-time!
 - **🌙 True AMOLED Black Mode**: Switch between premium charcoal surfaces and high-contrast true black themes in Settings to save battery on OLED screens.
 
 ---

@@ -48,6 +48,10 @@ class UserPreferencesDataStore @Inject constructor(
 
         // Display
         val AMOLED_TRUE_BLACK = booleanPreferencesKey("amoled_true_black")
+
+        // Color Customization
+        val CUSTOM_BACKGROUND_COLOR = stringPreferencesKey("custom_background_color")
+        val CUSTOM_ACCENT_COLOR = stringPreferencesKey("custom_accent_color")
     }
 
     // Playback Settings Flow
@@ -75,6 +79,10 @@ class UserPreferencesDataStore @Inject constructor(
     // AMOLED Flow
     val amoledTrueBlack: Flow<Boolean> = dataStore.data.map { it[AMOLED_TRUE_BLACK] ?: false }
 
+    // Color Customization Flow (nullable hex strings e.g. "#FF8C00")
+    val customBackgroundColor: Flow<String?> = dataStore.data.map { it[CUSTOM_BACKGROUND_COLOR] }
+    val customAccentColor: Flow<String?> = dataStore.data.map { it[CUSTOM_ACCENT_COLOR] }
+
     // Updaters
     suspend fun setDefaultSpeed(speed: Float) = dataStore.edit { it[DEFAULT_SPEED] = speed }
     suspend fun setRememberSpeed(remember: Boolean) = dataStore.edit { it[REMEMBER_SPEED] = remember }
@@ -95,4 +103,13 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setPipAutoEnter(enabled: Boolean) = dataStore.edit { it[PIP_AUTO_ENTER] = enabled }
 
     suspend fun setAmoledTrueBlack(enabled: Boolean) = dataStore.edit { it[AMOLED_TRUE_BLACK] = enabled }
+
+    suspend fun setCustomBackgroundColor(hex: String?) = dataStore.edit {
+        if (hex != null) it[CUSTOM_BACKGROUND_COLOR] = hex
+        else it.remove(CUSTOM_BACKGROUND_COLOR)
+    }
+    suspend fun setCustomAccentColor(hex: String?) = dataStore.edit {
+        if (hex != null) it[CUSTOM_ACCENT_COLOR] = hex
+        else it.remove(CUSTOM_ACCENT_COLOR)
+    }
 }

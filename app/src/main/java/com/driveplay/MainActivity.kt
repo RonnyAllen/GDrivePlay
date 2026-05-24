@@ -126,8 +126,17 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val amoledMode by userPreferences.amoledTrueBlack.collectAsState(initial = false)
+            val customBgHex by userPreferences.customBackgroundColor.collectAsState(initial = null)
+            val customAccentHex by userPreferences.customAccentColor.collectAsState(initial = null)
 
-            DrivePlayTheme(isAmoledMode = amoledMode) {
+            val customBgColor = customBgHex?.let { parseHexColor(it) }
+            val customAccentColor = customAccentHex?.let { parseHexColor(it) }
+
+            DrivePlayTheme(
+                isAmoledMode = amoledMode,
+                customBackgroundColor = customBgColor,
+                customAccentColor = customAccentColor
+            ) {
                 var currentScreen by remember { mutableStateOf("splash") }
                 var selectedTab by remember { mutableIntStateOf(0) }
                 val scope = rememberCoroutineScope()
@@ -430,3 +439,22 @@ fun LoginScreen(
         }
     }
 }
+
+/**
+ * Parses a hex color string (e.g. "#FF8C00" or "FF8C00") to a Compose [Color].
+ * Returns null if the string is malformed.
+ */
+fun parseHexColor(hex: String): Color? {
+    return try {
+        val cleaned = hex.removePrefix("#")
+        val colorLong = when (cleaned.length) {
+            6 -> (0xFF000000 or cleaned.toLong(16))
+            8 -> cleaned.toLong(16)
+            else -> return null
+        }
+        Color(colorLong.toInt())
+    } catch (_: Exception) {
+        null
+    }
+}
+

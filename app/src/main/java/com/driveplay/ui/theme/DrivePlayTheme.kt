@@ -1,51 +1,54 @@
 package com.driveplay.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
-
-private val DrivePlayColorScheme = darkColorScheme(
-    primary = AccentPrimary,
-    secondary = AccentSecondary,
-    background = BackgroundDark,
-    surface = SurfaceDark,
-    surfaceVariant = SurfaceElevated,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    error = ErrorColor,
-    outline = DividerColor
-)
-
-private val AmoledColorScheme = darkColorScheme(
-    primary = AccentPrimary,
-    secondary = AccentSecondary,
-    background = TrueBlack,
-    surface = TrueBlack,
-    surfaceVariant = SurfaceDark,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    error = ErrorColor,
-    outline = DividerColor
-)
+import androidx.compose.ui.graphics.lerp
 
 @Composable
 fun DrivePlayTheme(
     isAmoledMode: Boolean = false,
+    customBackgroundColor: Color? = null,
+    customAccentColor: Color? = null,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (isAmoledMode) AmoledColorScheme else DrivePlayColorScheme
+    val resolvedBackground = when {
+        isAmoledMode -> TrueBlack
+        customBackgroundColor != null -> customBackgroundColor
+        else -> DefaultBackgroundDark
+    }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+    val resolvedAccent = customAccentColor ?: DefaultAccentPrimary
+
+    val resolvedSurface = if (isAmoledMode) TrueBlack else lightenColor(resolvedBackground, 0.04f)
+    val resolvedSurfaceVariant = if (isAmoledMode) lightenColor(resolvedBackground, 0.04f) else lightenColor(resolvedBackground, 0.08f)
+    val resolvedAccentSecondary = lerp(resolvedAccent, Color.White, 0.3f)
+
+    val colorScheme = darkColorScheme(
+        primary = resolvedAccent,
+        secondary = resolvedAccentSecondary,
+        background = resolvedBackground,
+        surface = resolvedSurface,
+        surfaceVariant = resolvedSurfaceVariant,
+        onPrimary = Color.White,
+        onSecondary = Color.Black,
+        onBackground = TextPrimary,
+        onSurface = TextPrimary,
+        onSurfaceVariant = TextSecondary,
+        error = ErrorColor,
+        outline = DividerColor
     )
+
+    CompositionLocalProvider(
+        LocalAccentPrimary provides resolvedAccent,
+        LocalBackgroundDark provides resolvedBackground
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

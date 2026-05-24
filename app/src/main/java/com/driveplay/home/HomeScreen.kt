@@ -89,16 +89,6 @@ fun HomeScreen(
                     IconButton(onClick = { /* Global search trigger */ }) {
                         Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = TextPrimary)
                     }
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(AccentPrimary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "U", fontWeight = FontWeight.Bold, color = Color.White)
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = BackgroundDark,
