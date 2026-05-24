@@ -96,25 +96,44 @@ class BrowserViewModel @Inject constructor(
     }
 
     private suspend fun fetchFolderContents(folderId: String) {
-        when (val result = getFolderContentsUseCase(folderId)) {
-            is GetFolderContentsUseCase.FolderResult.Success -> {
-                nextPageToken = result.nextPageToken
-                if (result.folders.isEmpty() && result.videos.isEmpty()) {
-                    _uiState.value = BrowserUiState.Empty(breadcrumbs.lastOrNull()?.folderName ?: "Folder")
-                } else {
-                    _uiState.value = BrowserUiState.Success(
-                        folders = result.folders,
-                        videos = result.videos,
-                        breadcrumbs = ArrayList(breadcrumbs)
-                    )
-                    applySort()
+        val accumFolders = mutableListOf<PlaylistItem>()
+        val accumVideos = mutableListOf<PlaylistItem>()
+        var pageToken: String? = null
+        var fetchFailed = false
+        var exceptionMessage = "Failed to retrieve folder contents"
+
+        do {
+            when (val result = getFolderContentsUseCase(folderId, pageToken)) {
+                is GetFolderContentsUseCase.FolderResult.Success -> {
+                    accumFolders.addAll(result.folders)
+                    accumVideos.addAll(result.videos)
+                    pageToken = result.nextPageToken
+                }
+                is GetFolderContentsUseCase.FolderResult.Error -> {
+                    fetchFailed = true
+                    exceptionMessage = result.exception.message ?: "Failed to retrieve folder contents"
+                    break
                 }
             }
-            is GetFolderContentsUseCase.FolderResult.Error -> {
-                _uiState.value = BrowserUiState.Error(
-                    message = result.exception.message ?: "Failed to retrieve folder contents",
-                    canRetry = true
+        } while (pageToken != null)
+
+        nextPageToken = null // Fully consumed, no next page needed
+
+        if (fetchFailed) {
+            _uiState.value = BrowserUiState.Error(
+                message = exceptionMessage,
+                canRetry = true
+            )
+        } else {
+            if (accumFolders.isEmpty() && accumVideos.isEmpty()) {
+                _uiState.value = BrowserUiState.Empty(breadcrumbs.lastOrNull()?.folderName ?: "Folder")
+            } else {
+                _uiState.value = BrowserUiState.Success(
+                    folders = accumFolders.distinctBy { it.fileId },
+                    videos = accumVideos.distinctBy { it.fileId },
+                    breadcrumbs = ArrayList(breadcrumbs)
                 )
+                applySort()
             }
         }
     }

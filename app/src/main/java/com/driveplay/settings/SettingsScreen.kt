@@ -435,7 +435,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "GDrivePlay v1.0.2",
+                        text = "GDrivePlay v1.0.3",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
