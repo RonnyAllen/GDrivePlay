@@ -14,10 +14,12 @@ GDrivePlay is a premium, feature-rich Android video player designed to let you s
   - **Left Screen Edge**: Swipe up/down to adjust screen brightness smoothly.
   - **Right Screen Edge**: Swipe up/down to adjust volume (and engage 200% boost).
   - **Center Screen**: Swipe horizontally to scrub through the timeline with live video seeks and exact timecode overlays.
-- **🔄 Smart Playback Controls**: Loop modes (off, loop one, repeat all), shuffle playback, fast forward/rewind 10s taps, and customizable playback speeds (0.25x up to 2.0x).
+- **🔄 Smart Playback Controls**: Loop modes (off, loop one, repeat all), shuffle playback, fast forward/rewind 10s taps, customizable playback speeds, and an immersive **Circular Playlist Play Button** (FAB) to instantly queue and play your items.
 - **📂 Press-and-Hold Context Menus**:
   - Long-press any file or folder to add it to your playlist queue.
   - Enter **Multi-Select Mode** to choose multiple videos and folders, and queue them all at once using the glassmorphic floating action bar.
+- **⚡ Zero-Incremental Folder Loading**: Large Google Drive directories are loaded completely in the background. The app holds a clean skeleton loading screen active until 100% of the directory items are fetched, avoiding incremental pop-ins.
+- **📜 High-Performance Vertical Scrollbars**: Beautiful Material 3 vertical scrollbars drawn directly on navigation lists (both file browser and active playlist screens) with float-optimized smooth tracking.
 - **📺 Chromecast & background Sync**: Play audio in the background or cast directly to your Smart TV over LAN with automatic token proxy security.
 - **🎨 Custom Color Scheme Themes**: Personalize the look and feel of the app by choosing your own custom background color and primary accent color using the dual color pickers in Settings. The entire app UI updates reactively in real-time!
 - **🌙 True AMOLED Black Mode**: Switch between premium charcoal surfaces and high-contrast true black themes in Settings to save battery on OLED screens.
