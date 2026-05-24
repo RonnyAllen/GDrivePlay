@@ -41,3 +41,31 @@
 
 # Google API client Apache HTTP transport warnings
 -dontwarn org.apache.http.**
+
+# ── Kotlin Coroutines & R8 Full Mode Fixes ──────────────────────────────────
+# Prevents java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType
+-keepattributes Signature, InnerClasses, EnclosingMethod, AnnotationDefault, *Annotation*, KotlinMetadata
+
+# Keep Kotlin Metadata (required for reflection and generic matching)
+-keep class kotlin.Metadata { *; }
+
+# Keep Continuation interfaces and classes intact for suspend functions
+-keep class kotlin.coroutines.Continuation { *; }
+-keep interface kotlin.coroutines.Continuation { *; }
+-keep class kotlin.coroutines.SafeContinuation { *; }
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
+# Keep GDrivePlay API interfaces and data models fully intact
+-keep interface com.driveplay.data.remote.DriveApiService { *; }
+-keepclassmembers interface com.driveplay.data.remote.DriveApiService {
+    <methods>;
+}
+-keep class com.driveplay.data.remote.models.** { *; }
+-keep class com.driveplay.domain.model.** { *; }
+
+# Keep internal coroutine state variables
+-keepclassmembers class * {
+    *** label;
+}
