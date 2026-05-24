@@ -16,10 +16,21 @@
 -dontwarn okio.**
 -keep class okhttp3.internal.publicsuffix.** { *; }
 
-# Retrofit
--keepattributes RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations
--keep,allowobfuscation,allowshrinking interface retrofit2.Call
--keep,allowobfuscation,allowshrinking class retrofit2.Response
+# Retrofit 2
+-keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers interface * {
+    @retrofit2.http.** <methods>;
+}
+-keep class com.driveplay.data.remote.models.** { *; }
+
+# Gson
+-keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses
+-keep class com.google.gson.** { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
 
 # Google Cast SDK
 -keep class com.google.android.gms.cast.** { *; }
